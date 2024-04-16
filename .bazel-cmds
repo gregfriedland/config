@@ -1,0 +1,51 @@
+SET_BUILD_ENV='--//atomwise/common:build_env=solute'
+
+alias gms='git machete status'
+alias gmup='git machete go up && git machete status'
+alias gmdown='git machete go down && git machete status'
+alias gmu='git machete update -n && git machete status'
+alias gmt='git machete traverse -W -y'
+alias gma='git machete add'
+alias gme='git machete edit'
+alias gmf='git machete go first && git machete status'
+alias gml='git machete go last && git machete status'
+
+
+function b () {
+    if git rev-parse --is-inside-work-tree &> /dev/null
+    then
+	root_dir=$(git rev-parse --show-toplevel)
+        command bazel --output_user_root=$root_dir/bazel-tmp "$@"
+    else
+        echo "Not in a git work tree"
+	exit 1
+    fi
+}
+
+function brun () {
+    (b run $SET_BUILD_ENV --stamp --workspace_status_command=infra/bazel/stamp.sh "$@")
+}
+
+function bbuild () {
+    (b build $SET_BUILD_ENV --stamp --workspace_status_command=infra/bazel/stamp.sh "$@")
+}
+
+function btest () {
+    b test $SET_BUILD_ENV --stamp --workspace_status_command=infra/bazel/stamp.sh --test_arg="-s" --test_arg="--tb=short" "$@"
+}
+
+function btests () {
+    btest --test_output=streamed --cache_test_results=no "$@"
+}
+
+function blint () {
+    b run //infra/ci_cd/lint -- "$@"
+}
+
+function blint_push () {
+    blint --fix && blint && git amend && git push -f
+}
+
+function baudit () {
+    b run //infra/ci_cd/audit:audit -- --suppress --include_unchanged
+}
